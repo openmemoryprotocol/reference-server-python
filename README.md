@@ -13,11 +13,11 @@ Draft — Core endpoints only
 - Pydantic
 
 ## Phase 1 Features
-- POST /objects` — Create object
-- GET /objects/{id}` — Fetch object
-- POST /objects/search` — Search objects
-- DELETE /objects/{id}` — Delete object
-- GET /.well-known/omp-configuration` — Server capability document
+- POST /objects — Create object
+- GET /objects/{id} — Fetch object
+- POST /objects/search — Search objects
+- DELETE /objects/{id} — Delete object
+- GET /.well-known/omp-configuration — Server capability document
 - In-memory storage (for clarity)
 
 ## Next (Planned)
