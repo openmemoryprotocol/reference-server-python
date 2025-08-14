@@ -1,6 +1,8 @@
+import os
+import json
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import os
 
 # Load env vars
 from dotenv import load_dotenv
@@ -48,6 +50,35 @@ def delete_data(key: str):
         del data_store[key]
         return {"message": "deleted"}
     raise HTTPException(status_code=404, detail="Key not found")
+
+
+# List everything in the in-memory store
+@app.get("/list")
+def list_items():
+    out = []
+    for k, v in data_store.items():
+        try:
+            size_bytes = len(json.dumps(v["value"]))
+        except Exception:
+            size_bytes = None
+        out.append({
+            "key": k,
+            "lifespan": v.get("lifespan"),
+            "size_bytes": size_bytes
+        })
+    return {"count": len(out), "items": out}
+
+# Search by key substring and/or lifespan
+@app.get("/search")
+def search_items(contains: Optional[str] = None, lifespan: Optional[str] = None):
+    results = []
+    for k, v in data_store.items():
+        if contains and contains not in k:
+            continue
+        if lifespan and v.get("lifespan") != lifespan:
+            continue
+        results.append({"key": k, "lifespan": v.get("lifespan")})
+    return {"count": len(results), "results": results}
 
 if __name__ == "__main__":
     import uvicorn
