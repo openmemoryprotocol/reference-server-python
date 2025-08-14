@@ -80,6 +80,45 @@ def search_items(contains: Optional[str] = None, lifespan: Optional[str] = None)
         results.append({"key": k, "lifespan": v.get("lifespan")})
     return {"count": len(results), "results": results}
 
+
+# -------- Health --------
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+# -------- Discovery (OMP 0.1 well-known) --------
+@app.get("/.well-known/omp.json")
+def omp_discovery():
+    # minimal discovery for OMP 0.1
+    from omp_ref_server.config.settings import (
+        MAX_PAYLOAD_SIZE_MB, RATE_LIMIT_PER_MIN, SERVER_PORT
+    )
+    return {
+        "omp_version": "0.1",
+        "transport": ["http/1.1"],
+        "endpoints": {
+            "store": "/store",
+            "get": "/get/{key}",
+            "delete": "/delete/{key}",
+            "list": "/list",
+            "search": "/search",
+            "health": "/health",
+            "config_legacy": "/.well-known/omp-configuration"
+        },
+        "capabilities": [
+            "data.write", "data.read", "data.delete", "data.search"
+        ],
+        "semantics": {
+            "required_context": "json-ld",
+            "examples": ["https://schema.org/Dataset"]
+        },
+        "limits": {
+            "max_payload_mb": MAX_PAYLOAD_SIZE_MB,
+            "rate_limit_per_min": RATE_LIMIT_PER_MIN
+        },
+        "server": {"port": SERVER_PORT}
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
