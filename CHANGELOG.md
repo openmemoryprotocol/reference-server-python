@@ -20,3 +20,5 @@
 - Created `api/objects.py` scaffold.
 - Added router for `/objects`, Pydantic models, and StoragePort interface.
 - Inserted 7.1 signature verification placeholder for future DID/VC auth.
+- Updated `src/main.py` to include the new objects router.
+- All `/objects/*` routes are now mounted under the main FastAPI app.
