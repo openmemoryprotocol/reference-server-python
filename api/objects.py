@@ -3,7 +3,8 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from fastapi import Body
+from fastapi import Body, APIRouter, Depends, HTTPException, status, Response
+
 
 # --- 7.1 hook (placeholder) ---
 def verify_signature_dependency():
@@ -36,10 +37,18 @@ class ObjectOut(BaseModel):
     created_at: datetime
     metadata: Dict[str, Any]
 
+class ObjectDataOut(ObjectOut):
+    content: Dict[str, Any]
+
 # Storage port (use your concrete adapter in infra layer)
 class StoragePort:
     def store(self, namespace: str, key: Optional[str], content: Dict[str, Any], metadata: Dict[str, Any]) -> ObjectOut:
         raise NotImplementedError
+    def delete(self, object_id: str) -> None:
+        raise NotImplementedError
+
+def get(self, object_id: str) -> "ObjectDataOut":
+    raise NotImplementedError
 
 # Inject your real storage adapter here (redis/postgres/vector/etc.)
 def get_storage() -> StoragePort:
@@ -61,3 +70,23 @@ def store_object(payload: ObjectIn = Body(...), storage: StoragePort = Depends(g
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Store failed")
+
+@router.get("/{object_id}", response_model=ObjectDataOut)
+def get_object(object_id: str, storage: StoragePort = Depends(get_storage)) -> ObjectDataOut:
+    try:
+        out = storage.get(object_id)
+        return out
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object not found")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Get failed")
+
+@router.delete("/{object_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_object(object_id: str, storage: StoragePort = Depends(get_storage)) -> Response:
+    try:
+        storage.delete(object_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object not found")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Delete failed")
