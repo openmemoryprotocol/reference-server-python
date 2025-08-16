@@ -60,3 +60,8 @@
 
 > **Versioning note (2025-08-16):** Early commits referenced temporary tags `v8.0b*`.  
 > Tags and docs have been normalized to `v0.8.0-b*` (SemVer prerelease).
+## v0.8.0-b.fx4 — (2025-08-16)
+- Refactored `OMPEnvelope` out of `main.py` into `src/omp_ref_server/models/envelope.py`.
+- Exported envelope from `omp_ref_server/models/__init__.py` for clean imports.
+- Updated `src/omp_ref_server/main.py` to import `OMPEnvelope` from the models package.
+- Rationale: isolate domain models, keep `main.py` focused on app wiring, reduce long-term tech debt.
