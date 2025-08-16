@@ -5,11 +5,17 @@ import uuid
 import pytest
 
 from fastapi.testclient import TestClient
-from src.main import app
+
+# Import the FastAPI app from the package (clean, src-layout friendly)
+from omp_ref_server.main import app
+
+# Use the objects API dependency seam
 from api.objects import get_storage, StoragePort, ObjectOut, ObjectDataOut
+
 
 class FakeMemoryStorage(StoragePort):
     def __init__(self):
+        # keyed by object_id
         self._db: Dict[str, Dict[str, Any]] = {}
 
     def store(self, namespace: str, key: Optional[str], content: Dict[str, Any], metadata: Dict[str, Any]) -> ObjectOut:
@@ -37,8 +43,11 @@ class FakeMemoryStorage(StoragePort):
             raise KeyError(object_id)
         return ObjectDataOut(**self._db[object_id])
 
+
+# One shared instance across tests; reset between tests
 _FAKE = FakeMemoryStorage()
 app.dependency_overrides[get_storage] = lambda: _FAKE
+
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)

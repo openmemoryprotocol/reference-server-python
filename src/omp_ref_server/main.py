@@ -1,10 +1,12 @@
+# src/main.py
 import os
 import json
 from typing import Optional, List
+
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from datetime import datetime
-from pydantic import Field
+from pydantic import BaseModel, Field, ConfigDict
+from datetime import datetime, UTC
+
 from omp_ref_server.api.health import router as health_router
 from omp_ref_server.api.discovery import router as discovery_router
 from api.objects import router as objects_router
@@ -16,7 +18,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 app = FastAPI(
     title="Open Memory Protocol — Reference Server",
     description="Structured data exchange between agents — all data, short or long lifespan.",
-    version="0.1.0"
+    version="0.1.0",
 )
 
 app.include_router(health_router)
@@ -26,7 +28,7 @@ app.include_router(objects_router)
 # In-memory storage for now (replace with backends later)
 data_store = {}
 
-# Models
+# -------- Legacy demo models/routes (kept until 8.0b.7 removes them) --------
 class DataItem(BaseModel):
     key: str
     value: dict
@@ -51,13 +53,18 @@ class OMPEnvelope(BaseModel):
     to: Optional[str] = None
     performative: str  # inform|request|propose|agree|refuse|query
     capability: str    # data.read|data.write|data.search|data.delete
-    schema: Optional[str] = None       # JSON-LD IRI
+    # internal name avoids BaseModel clash; wire stays "schema"
+    omp_schema: Optional[str] = Field(default=None, alias="schema", serialization_alias="schema")
     payload: dict
     proof: Optional[OMPProof] = None
     trace: Optional[OMPTrace] = None
 
-    class Config:
-        populate_by_name = True  # output `from` again when needed
+    # Pydantic v2 config (decade-proof)
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+        protected_namespaces=(),   # keep aliases like 'from'
+    )
 
 # Root endpoint
 @app.get("/")
@@ -86,7 +93,6 @@ def delete_data(key: str):
         del data_store[key]
         return {"message": "deleted"}
     raise HTTPException(status_code=404, detail="Key not found")
-
 
 # List everything in the in-memory store
 @app.get("/list")
@@ -119,19 +125,20 @@ def search_items(contains: Optional[str] = None, lifespan: Optional[str] = None)
 @app.post("/exchange")
 def exchange_message(env: OMPEnvelope):
     # TODO (7.1): verify env.proof.jws (Ed25519); DID/VC
-    # Basic guards to keep things sane
-    allowed_perf = {"inform","request","propose","agree","refuse","query"}
+    allowed_perf = {"inform", "request", "propose", "agree", "refuse", "query"}
     if env.performative not in allowed_perf:
         raise HTTPException(status_code=400, detail="invalid performative")
-    allowed_caps = {"data.read","data.write","data.search","data.delete"}
+    allowed_caps = {"data.read", "data.write", "data.search", "data.delete"}
     if env.capability not in allowed_caps:
         raise HTTPException(status_code=400, detail="invalid capability")
 
     # Simple demo behavior:
-    # - data.write => if payload has {key, value, lifespan} store it
-    # - data.read  => if payload has {key} return current value
-    # (We keep it minimal until full Objects API in later steps.)
-    result = {"ack": True, "id": env.id, "performative": env.performative, "capability": env.capability}
+    result = {
+        "ack": True,
+        "id": env.id,
+        "performative": env.performative,
+        "capability": env.capability,
+    }
 
     try:
         if env.capability == "data.write":
@@ -140,7 +147,7 @@ def exchange_message(env: OMPEnvelope):
             lifespan = env.payload.get("lifespan", "short")
             if not key or value is None:
                 raise ValueError("payload must include key and value")
-            if lifespan not in ["short","long"]:
+            if lifespan not in ["short", "long"]:
                 raise ValueError("invalid lifespan in payload")
             data_store[key] = {"value": value, "lifespan": lifespan}
             result["write"] = {"stored": True, "key": key}
@@ -177,15 +184,15 @@ def exchange_message(env: OMPEnvelope):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    result["received_at"] = datetime.utcnow().isoformat() + "Z"
+    result["received_at"] = datetime.now(UTC).isoformat()
     return result
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app",
+        "omp_ref_server.main:app",
         host=os.getenv("OMP_SERVER_HOST", "0.0.0.0"),
         port=int(os.getenv("OMP_SERVER_PORT", "8080")),
-        reload=True
+        reload=True,
     )
