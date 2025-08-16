@@ -7,3 +7,4 @@
 | 6.9 | v0.6.9 | 2025-08-14 | Added /health and /.well-known/omp.json (discovery). |
 | 7.0 | v0.7.0 | 2025-08-14 | Added OMP envelope + /exchange (data.write/read/delete/search). |
 | 8.0b.1 | v8.0b.1 | 2025-08-16 | Created api/objects.py scaffold with 7.1 hook. |
+| 8.0b.2 | v8.0b.2 | 2025-08-16 | Wired objects router into src/main.py. |
