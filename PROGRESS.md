@@ -11,8 +11,8 @@
 - [x] 8.0b.2 — v0.8.0-b.2 Wire objects router into FastAPI app (`src/main.py`)
 - [x] 8.0b.3 — v0.8.0-b.3 Move **POST /objects** (store) into `api/objects.py`
 - [x] 8.0b.3-test — v0.8.0-b.3-test Unit test for **POST /objects** (FakeMemoryStorage)
-- [ ] 8.0b.4 Move **GET /objects/{id}**
-- [ ] 8.0b.4-test Unit test for **GET /objects/{id}**
+- [x] 8.0b.4 Move **GET /objects/{id}**
+- [x] 8.0b.4-test Unit test for **GET /objects/{id}**
 - [ ] 8.0b.5 Move **DELETE /objects/{id}**
 - [ ] 8.0b.5-test Unit test for **DELETE /objects/{id}**
 - [ ] 8.0b.6 Move **GET /objects** (list)
