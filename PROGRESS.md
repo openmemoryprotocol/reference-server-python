@@ -6,7 +6,7 @@
 - [x] 6.9 — v0.6.9 — Added /health and /.well-known/omp.json (discovery)
 - [x] 7.0 — v0.7.0 — Added OMP envelope + /exchange (data.write/read/delete/search)
 
-## 8.0b — CRUD endpoints migration
+## v0.8.0b — CRUD endpoints migration
 - [x] 8.0b.1 — v0.8.0-b.1 Create `api/objects.py` scaffold with 7.1 signature hook
 - [x] 8.0b.2 — v0.8.0-b.2 Wire objects router into FastAPI app (`src/main.py`)
 - [x] 8.0b.3 — v0.8.0-b.3 Move **POST /objects** (store) into `api/objects.py`
