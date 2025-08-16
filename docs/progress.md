@@ -10,4 +10,4 @@
 | 8.0b.2 | v0.8.0-b.2 | 2025-08-16 | Wired objects router into src/main.py. |
 | 8.0b.3 | v0.8.0-b.3 | 2025-08-16 | Moved POST /objects (store) into api/objects.py. |
 | 8.0b.3-test | v0.8.0-b.3-test | 2025-08-16 | Unit test for POST /objects (fake storage). |
-| 8.0b.3-test | v0.8.0-b.3-test | 2025-08-16 | Unit test for POST /objects (fake storage). |
+| FX-1 | v0.8.0-b.fx1 | 2025-08-16 | Timezone-aware datetimes in tests. |
