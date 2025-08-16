@@ -25,3 +25,6 @@
 ## v8.0b.3 — (2025-08-16)
 - Implemented `POST /objects` in `api/objects.py` via `StoragePort.store()`.
 - Returns `ObjectOut` with HTTP 201; 400 on bad input; 500 on internal error.
+- Added `tests/test_objects_store.py` with FakeMemoryStorage via dependency override.
+- Ensured `src/` layout is importable by adding `__init__.py` files.
+- Verified `POST /objects` returns 201 and valid `ObjectOut`.
