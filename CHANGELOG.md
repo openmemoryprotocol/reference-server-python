@@ -31,3 +31,6 @@
 
 > **Versioning note (2025-08-16):** Earlier commits referenced temporary tags `v8.0b*`. 
 > Tags and docs have been normalized to `v0.8.0-b*` (SemVer prerelease).
+## v0.8.0-b.2 — (2025-08-16)
+- Updated `src/main.py` to include the new objects router.
+- All `/objects/*` routes are now mounted under the main FastAPI app.
