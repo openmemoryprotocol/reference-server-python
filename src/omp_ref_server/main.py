@@ -9,6 +9,7 @@ from datetime import datetime, UTC
 
 from omp_ref_server.api.health import router as health_router
 from omp_ref_server.api.discovery import router as discovery_router
+from omp_ref_server.models import OMPEnvelope
 from api.objects import router as objects_router
 
 # Load env vars
@@ -44,27 +45,6 @@ class OMPTrace(BaseModel):
     ttl_ms: Optional[int] = 30000
     retry: Optional[int] = 0
     causality: Optional[List[str]] = []
-
-class OMPEnvelope(BaseModel):
-    omp_version: str = "0.1"
-    id: str
-    timestamp: datetime
-    from_: str = Field(alias="from")   # allow JSON field `from`
-    to: Optional[str] = None
-    performative: str  # inform|request|propose|agree|refuse|query
-    capability: str    # data.read|data.write|data.search|data.delete
-    # internal name avoids BaseModel clash; wire stays "schema"
-    omp_schema: Optional[str] = Field(default=None, alias="schema", serialization_alias="schema")
-    payload: dict
-    proof: Optional[OMPProof] = None
-    trace: Optional[OMPTrace] = None
-
-    # Pydantic v2 config (decade-proof)
-    model_config = ConfigDict(
-        extra="forbid",
-        populate_by_name=True,
-        protected_namespaces=(),   # keep aliases like 'from'
-    )
 
 # Root endpoint
 @app.get("/")
