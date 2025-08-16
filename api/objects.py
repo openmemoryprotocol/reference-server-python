@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from fastapi import Body
 
 # --- 7.1 hook (placeholder) ---
 def verify_signature_dependency():
@@ -46,3 +47,17 @@ def get_storage() -> StoragePort:
     return redis_engine.adapter()  # must implement StoragePort
 
 # --- Routes will be filled step-by-step ---
+@router.post("", response_model=ObjectOut, status_code=status.HTTP_201_CREATED)
+def store_object(payload: ObjectIn = Body(...), storage: StoragePort = Depends(get_storage)) -> ObjectOut:
+    try:
+        out = storage.store(
+            namespace=payload.namespace,
+            key=payload.key,
+            content=payload.content,
+            metadata=payload.metadata or {},
+        )
+        return out
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Store failed")
