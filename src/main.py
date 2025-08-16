@@ -5,7 +5,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
 from pydantic import Field
-
+from omp_ref_server.api.health import router as health_router
+from omp_ref_server.api.discovery import router as discovery_router
+from api.objects import router as objects_router
 
 # Load env vars
 from dotenv import load_dotenv
@@ -16,6 +18,10 @@ app = FastAPI(
     description="Structured data exchange between agents — all data, short or long lifespan.",
     version="0.1.0"
 )
+
+app.include_router(health_router)
+app.include_router(discovery_router)
+app.include_router(objects_router)
 
 # In-memory storage for now (replace with backends later)
 data_store = {}
@@ -174,44 +180,6 @@ def exchange_message(env: OMPEnvelope):
     result["received_at"] = datetime.utcnow().isoformat() + "Z"
     return result
 
-
-# -------- Health --------
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-# -------- Discovery (OMP 0.1 well-known) --------
-@app.get("/.well-known/omp.json")
-def omp_discovery():
-    # minimal discovery for OMP 0.1
-    from omp_ref_server.config.settings import (
-        MAX_PAYLOAD_SIZE_MB, RATE_LIMIT_PER_MIN, SERVER_PORT
-    )
-    return {
-        "omp_version": "0.1",
-        "transport": ["http/1.1"],
-        "endpoints": {
-            "store": "/store",
-            "get": "/get/{key}",
-            "delete": "/delete/{key}",
-            "list": "/list",
-            "search": "/search",
-            "health": "/health",
-            "config_legacy": "/.well-known/omp-configuration"
-        },
-        "capabilities": [
-            "data.write", "data.read", "data.delete", "data.search"
-        ],
-        "semantics": {
-            "required_context": "json-ld",
-            "examples": ["https://schema.org/Dataset"]
-        },
-        "limits": {
-            "max_payload_mb": MAX_PAYLOAD_SIZE_MB,
-            "rate_limit_per_min": RATE_LIMIT_PER_MIN
-        },
-        "server": {"port": SERVER_PORT}
-    }
 
 if __name__ == "__main__":
     import uvicorn
