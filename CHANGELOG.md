@@ -16,3 +16,7 @@
 - Added OMP 0.1 envelope models (id, timestamp, from/to, performative, capability, schema, payload, proof, trace).
 - Implemented `POST /exchange` with `data.write/read/delete/search` actions.
 - Preps 7.1 for Ed25519 JWS verification and future DID/VC auth.
+## v8.0b.1 — (2025-08-16)
+- Created `api/objects.py` scaffold.
+- Added router for `/objects`, Pydantic models, and StoragePort interface.
+- Inserted 7.1 signature verification placeholder for future DID/VC auth.
