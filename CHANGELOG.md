@@ -28,3 +28,6 @@
 - Added `tests/test_objects_store.py` with FakeMemoryStorage via dependency override.
 - Ensured `src/` layout is importable by adding `__init__.py` files.
 - Verified `POST /objects` returns 201 and valid `ObjectOut`.
+
+> **Versioning note (2025-08-16):** Earlier commits referenced temporary tags `v8.0b*`. 
+> Tags and docs have been normalized to `v0.8.0-b*` (SemVer prerelease).
