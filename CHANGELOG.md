@@ -65,3 +65,12 @@
 - Exported envelope from `omp_ref_server/models/__init__.py` for clean imports.
 - Updated `src/omp_ref_server/main.py` to import `OMPEnvelope` from the models package.
 - Rationale: isolate domain models, keep `main.py` focused on app wiring, reduce long-term tech debt.
+
+## v0.8.0-b.5 — (2025-08-16)
+- Implemented `DELETE /objects/{id}` in `api/objects.py`.
+- Extended `StoragePort` with `delete(object_id)`; returns **204** on success, **404** on missing.
+- Added 500-guard for unexpected delete failures.
+
+## v0.8.0-b.5-test — (2025-08-16)
+- Added `tests/test_objects_delete.py`.
+- Verifies 204 on delete, subsequent 404 on get, and 404 when deleting a missing id.

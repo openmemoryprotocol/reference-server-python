@@ -14,7 +14,7 @@
 - [x] 8.0b.4 Move **GET /objects/{id}**
 - [x] 8.0b.4-test Unit test for **GET /objects/{id}**
 - [ ] 8.0b.5 Move **DELETE /objects/{id}**
-- [ ] 8.0b.5-test Unit test for **DELETE /objects/{id}**
+- [x] 8.0b.5-test Unit test for **DELETE /objects/{id}**
 - [ ] 8.0b.6 Move **GET /objects** (list)
 - [ ] 8.0b.6-test Unit test for **GET /objects** (list)
 - [ ] 8.0b.7 Remove legacy routes
