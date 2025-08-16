@@ -22,3 +22,6 @@
 - Inserted 7.1 signature verification placeholder for future DID/VC auth.
 - Updated `src/main.py` to include the new objects router.
 - All `/objects/*` routes are now mounted under the main FastAPI app.
+## v8.0b.3 — (2025-08-16)
+- Implemented `POST /objects` in `api/objects.py` via `StoragePort.store()`.
+- Returns `ObjectOut` with HTTP 201; 400 on bad input; 500 on internal error.
