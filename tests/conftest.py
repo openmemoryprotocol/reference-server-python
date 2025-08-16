@@ -43,6 +43,10 @@ class FakeMemoryStorage(StoragePort):
             raise KeyError(object_id)
         return ObjectDataOut(**self._db[object_id])
 
+    def delete(self, object_id: str) -> None:
+        if object_id not in self._db:
+            raise KeyError(object_id)
+        del self._db[object_id]
 
 # One shared instance across tests; reset between tests
 _FAKE = FakeMemoryStorage()
