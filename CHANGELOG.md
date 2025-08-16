@@ -35,3 +35,5 @@
 
 > **Versioning note (2025-08-16):** Earlier commits referenced temporary tags `v8.0b*`. 
 > Tags and docs have been normalized to `v0.8.0-b*` (SemVer prerelease).
+## v0.8.0-b.fx1 — (2025-08-16)
+- Replaced `datetime.utcnow()` with `datetime.now(UTC)` in tests to future-proof against Python deprecations.
