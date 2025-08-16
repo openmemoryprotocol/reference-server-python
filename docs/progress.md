@@ -9,3 +9,4 @@
 | 8.0b.1 | v8.0b.1 | 2025-08-16 | Created api/objects.py scaffold with 7.1 hook. |
 | 8.0b.2 | v8.0b.2 | 2025-08-16 | Wired objects router into src/main.py. |
 | 8.0b.3 | v8.0b.3 | 2025-08-16 | Moved POST /objects (store) into api/objects.py. |
+| 8.0b.3-test | v8.0b.3-test | 2025-08-16 | Unit test for POST /objects (fake storage). |
