@@ -37,3 +37,9 @@
 > Tags and docs have been normalized to `v0.8.0-b*` (SemVer prerelease).
 ## v0.8.0-b.fx1 — (2025-08-16)
 - Replaced `datetime.utcnow()` with `datetime.now(UTC)` in tests to future-proof against Python deprecations.
+- Packaged app under `omp_ref_server.*`; moved entrypoint to `src/omp_ref_server/main.py` and fixed uvicorn target.
+- Migrated models to Pydantic v2 `model_config = ConfigDict(...)` (no class-based Config).
+- Renamed internal `schema` → `omp_schema` with `alias="schema"` and `serialization_alias="schema"` (wire compatible; avoids BaseModel clash).
+- Standardized timestamps to timezone-aware `datetime.now(UTC)`.
+- Added `pytest.ini` (src layout) and centralized test dependency override in `tests/conftest.py`.
+- Separated dev deps: added `requirements-dev.txt`; pinned `python-multipart>=0.0.9` in runtime deps.
