@@ -74,3 +74,7 @@
 ## v0.8.0-b.5-test — (2025-08-16)
 - Added `tests/test_objects_delete.py`.
 - Verifies 204 on delete, subsequent 404 on get, and 404 when deleting a missing id.
+## v0.8.0-b.6 — (2025-08-16)
+- Implemented `GET /objects` in `api/objects.py`.
+- Added `ObjectListOut { count, items[] }` and `StoragePort.list(limit, cursor)`.
+- Stable ordering by `(created_at, id)` in memory adapter (tests).
