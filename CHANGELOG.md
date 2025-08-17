@@ -78,3 +78,6 @@
 - Implemented `GET /objects` in `api/objects.py`.
 - Added `ObjectListOut { count, items[] }` and `StoragePort.list(limit, cursor)`.
 - Stable ordering by `(created_at, id)` in memory adapter (tests).
+## v0.8.0-b.6-test — (2025-08-16)
+- Added `tests/test_objects_list.py` verifying list shape and `limit` behavior.
+- Extended shared FakeMemoryStorage with `list()` for deterministic ordering.
