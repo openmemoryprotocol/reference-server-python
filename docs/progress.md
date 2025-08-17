@@ -17,3 +17,4 @@
 | 8.0b.5-test | v0.8.0-b.5-test | 2025-08-16 | Unit tests for DELETE /objects/{id} (204 then 404; missing 404). |
 | 8.0b.6 | v0.8.0-b.6 | 2025-08-16 | Implemented GET /objects with ObjectListOut. |
 | 8.0b.6-test | v0.8.0-b.6-test | 2025-08-16 | Unit tests for GET /objects (count/items, limit). |
+| 8.0b.7 | v0.8.0-b.7 | 2025-08-16 | Added /objects/search (namespace, key_contains) + route-order fix. |
