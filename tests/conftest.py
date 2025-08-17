@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 from fastapi.testclient import TestClient
+from api.objects import get_storage, StoragePort, ObjectOut, ObjectDataOut, ObjectListOut
 
 # Import the FastAPI app from the package (clean, src-layout friendly)
 from omp_ref_server.main import app
@@ -47,6 +48,24 @@ class FakeMemoryStorage(StoragePort):
         if object_id not in self._db:
             raise KeyError(object_id)
         del self._db[object_id]
+
+    def list(self, limit: int = 50, cursor: Optional[str] = None) -> ObjectListOut:
+        # stable order: by created_at then id
+        rows = list(self._db.values())
+        rows.sort(key=lambda r: (r["created_at"], r["id"]))
+        sliced = rows[: max(0, limit)]
+        items = [
+            ObjectOut(
+                id=r["id"],
+                namespace=r["namespace"],
+                key=r["key"],
+                created_at=r["created_at"],
+                metadata=r["metadata"],
+            )
+            for r in sliced
+        ]
+        return ObjectListOut(count=len(items), items=items)
+
 
 # One shared instance across tests; reset between tests
 _FAKE = FakeMemoryStorage()
