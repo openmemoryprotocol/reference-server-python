@@ -81,3 +81,7 @@
 ## v0.8.0-b.6-test — (2025-08-16)
 - Added `tests/test_objects_list.py` verifying list shape and `limit` behavior.
 - Extended shared FakeMemoryStorage with `list()` for deterministic ordering.
+## v0.8.0-b.7 — (2025-08-16)
+- Added `GET /objects/search` with filters: `namespace`, `key_contains`, plus `limit`/`cursor` placeholders.
+- Extended `StoragePort` with `search(...)`.
+- Fixed route ordering so `/search` is matched before `/{object_id}` to avoid false 404s.
