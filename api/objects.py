@@ -1,3 +1,4 @@
+
 # api/objects.py
 from typing import Optional, Dict, Any, List
 from datetime import datetime
@@ -40,6 +41,10 @@ class ObjectOut(BaseModel):
 class ObjectDataOut(ObjectOut):
     content: Dict[str, Any]
 
+class ObjectListOut(BaseModel):
+    count: int
+    items: List[ObjectOut]
+
 # Storage port (use your concrete adapter in infra layer)
 class StoragePort:
     def store(self, namespace: str, key: Optional[str], content: Dict[str, Any], metadata: Dict[str, Any]) -> ObjectOut:
@@ -48,6 +53,9 @@ class StoragePort:
         raise NotImplementedError
 
 def get(self, object_id: str) -> "ObjectDataOut":
+    raise NotImplementedError
+
+def list(self, limit: int = 50, cursor: Optional[str] = None) -> ObjectListOut:
     raise NotImplementedError
 
 # Inject your real storage adapter here (redis/postgres/vector/etc.)
@@ -90,3 +98,14 @@ def delete_object(object_id: str, storage: StoragePort = Depends(get_storage)) -
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object not found")
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Delete failed")
+
+@router.get("", response_model=ObjectListOut)
+def list_objects(
+    limit: int = 50,
+    cursor: Optional[str] = None,
+    storage: StoragePort = Depends(get_storage)
+) -> ObjectListOut:
+    try:
+        return storage.list(limit=limit, cursor=cursor)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="List failed")
