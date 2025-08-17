@@ -51,6 +51,15 @@ class StoragePort:
         raise NotImplementedError
     def delete(self, object_id: str) -> None:
         raise NotImplementedError
+    def search(
+        self,
+        namespace: Optional[str] = None,
+        key_contains: Optional[str] = None,
+        limit: int = 50,
+        cursor: Optional[str] = None,
+    ) -> "ObjectListOut":
+        raise NotImplementedError
+
 
 def get(self, object_id: str) -> "ObjectDataOut":
     raise NotImplementedError
@@ -78,6 +87,28 @@ def store_object(payload: ObjectIn = Body(...), storage: StoragePort = Depends(g
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Store failed")
+
+
+@router.get("/search", response_model=ObjectListOut)
+def search_objects(
+    namespace: Optional[str] = None,
+    key_contains: Optional[str] = None,
+    limit: int = 50,
+    cursor: Optional[str] = None,
+    storage: StoragePort = Depends(get_storage),
+) -> ObjectListOut:
+    try:
+        return storage.search(
+            namespace=namespace,
+            key_contains=key_contains,
+            limit=limit,
+            cursor=cursor,
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed",
+        )
 
 @router.get("/{object_id}", response_model=ObjectDataOut)
 def get_object(object_id: str, storage: StoragePort = Depends(get_storage)) -> ObjectDataOut:
@@ -109,3 +140,4 @@ def list_objects(
         return storage.list(limit=limit, cursor=cursor)
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="List failed")
+
