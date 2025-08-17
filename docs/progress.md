@@ -15,3 +15,4 @@
 | FX-4 | v0.8.0-b.fx4 | 2025-08-16 | Moved OMPEnvelope to models/envelope.py; cleaned imports. |
 | 8.0b.5 | v0.8.0-b.5 | 2025-08-16 | Implemented DELETE /objects/{id} in api/objects.py. |
 | 8.0b.5-test | v0.8.0-b.5-test | 2025-08-16 | Unit tests for DELETE /objects/{id} (204 then 404; missing 404). |
+| 8.0b.6 | v0.8.0-b.6 | 2025-08-16 | Implemented GET /objects with ObjectListOut. |
