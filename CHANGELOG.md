@@ -96,3 +96,8 @@
 ## v0.8.0-b.8-test — (2025-08-16)
 - Added `tests/test_objects_update.py` covering success path, missing-id 404, and 400 bad payload.
 - Ensured route-level validation returns **400** instead of Pydantic’s 422 for wrong content type.
+## v0.8.0-b.9 — (2025-08-16)
+- Added unified OMP error shape: `{"error": {code, message, status, details?}}`.
+- Registered exception handlers to format all `HTTPException`s.
+- Normalized request validation errors (FastAPI 422) to **400 Bad Request** with structured details.
+- Added tests covering 404 (missing id), 400 (bad payload), and validation normalization.
