@@ -20,3 +20,4 @@
 | 8.0b.7 | v0.8.0-b.7 | 2025-08-16 | Added /objects/search (namespace, key_contains) + route-order fix. |
 | 8.0b.7-test | v0.8.0-b.7-test | 2025-08-16 | Unit tests for /objects/search. |
 | 8.0b.8 | v0.8.0-b.8 | 2025-08-16 | PUT /objects/{id} (replace content+metadata; 400 on bad payload). |
+| 8.0b.8-test | v0.8.0-b.8-test | 2025-08-16 | Unit tests for PUT /objects/{id}. |
