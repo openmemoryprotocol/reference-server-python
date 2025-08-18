@@ -18,6 +18,6 @@
 - [x] 8.0b.6 Move **GET /objects** (list)
 - [x] 8.0b.6-test Unit test for **GET /objects** (list)
 - [x] 8.0b.7 Remove legacy routes
-- [ ] 8.0b.8 Add minimal tests (error paths, bad payloads)
+- [x] 8.0b.8 Add minimal tests (error paths, bad payloads)
 - [ ] 8.0b.9 Smoke test (uvicorn + curl)
 - [ ] 8.0b.10 Update docs
