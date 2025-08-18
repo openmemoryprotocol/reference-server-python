@@ -85,3 +85,6 @@
 - Added `GET /objects/search` with filters: `namespace`, `key_contains`, plus `limit`/`cursor` placeholders.
 - Extended `StoragePort` with `search(...)`.
 - Fixed route ordering so `/search` is matched before `/{object_id}` to avoid false 404s.
+## v0.8.0-b.7-test — (2025-08-16)
+- Added `tests/test_objects_search.py` covering namespace filter, `key_contains`, and `limit`.
+- Extended shared FakeMemoryStorage with `search()` and verified route order no longer conflicts with `/{object_id}`.
