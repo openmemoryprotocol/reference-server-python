@@ -21,3 +21,4 @@
 | 8.0b.7-test | v0.8.0-b.7-test | 2025-08-16 | Unit tests for /objects/search. |
 | 8.0b.8 | v0.8.0-b.8 | 2025-08-16 | PUT /objects/{id} (replace content+metadata; 400 on bad payload). |
 | 8.0b.8-test | v0.8.0-b.8-test | 2025-08-16 | Unit tests for PUT /objects/{id}. |
+| 8.0b.9 | v0.8.0-b.9 | 2025-08-16 | Unified OMP error schema; handlers for HTTP and validation errors (422→400). |
