@@ -66,6 +66,38 @@ class FakeMemoryStorage(StoragePort):
         ]
         return ObjectListOut(count=len(items), items=items)
 
+    def search(
+        self,
+        namespace: Optional[str] = None,
+        key_contains: Optional[str] = None,
+        limit: int = 50,
+        cursor: Optional[str] = None,
+    ) -> ObjectListOut:
+        rows = list(self._db.values())
+
+        # filters
+        if namespace is not None:
+            rows = [r for r in rows if r["namespace"] == namespace]
+        if key_contains:
+            rows = [r for r in rows if key_contains in (r.get("key") or "")]
+
+        # stable sort
+        rows.sort(key=lambda r: (r["created_at"], r["id"]))
+        sliced = rows[: max(0, limit)]
+
+        items = [
+            ObjectOut(
+                id=r["id"],
+                namespace=r["namespace"],
+                key=r["key"],
+                created_at=r["created_at"],
+                metadata=r["metadata"],
+            )
+            for r in sliced
+        ]
+        return ObjectListOut(count=len(items), items=items)
+
+
 
 # One shared instance across tests; reset between tests
 _FAKE = FakeMemoryStorage()
