@@ -12,6 +12,10 @@ from omp_ref_server.api.discovery import router as discovery_router
 from omp_ref_server.models import OMPEnvelope
 from api.objects import router as objects_router
 
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from omp_ref_server.api.errors import http_exception_handler, request_validation_exception_handler
+
 # Load env vars
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -25,6 +29,8 @@ app = FastAPI(
 app.include_router(health_router)
 app.include_router(discovery_router)
 app.include_router(objects_router)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
 
 # In-memory storage for now (replace with backends later)
 data_store = {}
