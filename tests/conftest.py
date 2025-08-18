@@ -97,6 +97,23 @@ class FakeMemoryStorage(StoragePort):
         ]
         return ObjectListOut(count=len(items), items=items)
 
+    def update(self, object_id: str, content: Dict[str, Any], metadata: Dict[str, Any]) -> ObjectOut:
+        if not isinstance(content, dict):
+            raise ValueError("content must be an object")
+        if object_id not in self._db:
+            raise KeyError(object_id)
+        rec = self._db[object_id]
+        rec["content"] = content
+        if metadata is not None:
+            rec["metadata"] = metadata
+        # keep id/namespace/key/created_at stable
+        return ObjectOut(
+            id=rec["id"],
+            namespace=rec["namespace"],
+            key=rec["key"],
+            created_at=rec["created_at"],
+            metadata=rec["metadata"],
+        )
 
 
 # One shared instance across tests; reset between tests
