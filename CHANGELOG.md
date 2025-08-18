@@ -93,3 +93,6 @@
 - Added `ObjectUpdateIn`; kept `namespace` and `key` immutable.
 - Loosened request schema and added explicit validation so invalid `content` returns **400** (not 422).
 - Extended `StoragePort.update(...)`.
+## v0.8.0-b.8-test — (2025-08-16)
+- Added `tests/test_objects_update.py` covering success path, missing-id 404, and 400 bad payload.
+- Ensured route-level validation returns **400** instead of Pydantic’s 422 for wrong content type.
