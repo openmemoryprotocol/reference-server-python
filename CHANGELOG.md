@@ -88,3 +88,8 @@
 ## v0.8.0-b.7-test — (2025-08-16)
 - Added `tests/test_objects_search.py` covering namespace filter, `key_contains`, and `limit`.
 - Extended shared FakeMemoryStorage with `search()` and verified route order no longer conflicts with `/{object_id}`.
+## v0.8.0-b.8 — (2025-08-16)
+- Implemented `PUT /objects/{id}` to replace `content` and optionally `metadata`.
+- Added `ObjectUpdateIn`; kept `namespace` and `key` immutable.
+- Loosened request schema and added explicit validation so invalid `content` returns **400** (not 422).
+- Extended `StoragePort.update(...)`.
