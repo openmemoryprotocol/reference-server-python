@@ -101,3 +101,7 @@
 - Registered exception handlers to format all `HTTPException`s.
 - Normalized request validation errors (FastAPI 422) to **400 Bad Request** with structured details.
 - Added tests covering 404 (missing id), 400 (bad payload), and validation normalization.
+### Dev runtime note — (2025-08-18)
+- Added a clearly documented **in-memory storage adapter** as the default *development* backend.
+- Production deployments must set `OMP_STORAGE=<backend>` to a real adapter (e.g., postgres/redis/s3) once available.
+- The memory adapter stays in the repo for DX and CI; it is not meant for persistent data.

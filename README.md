@@ -50,3 +50,15 @@ http://localhost:8080/docs
 
 **📜 Specification**
 Full spec: https://openmemoryprotocol.org/spec
+
+> **Note**  
+> By default, OMP uses an in-memory storage adapter for development.  
+> For production, set `OMP_STORAGE` to a real adapter (see `docs/ADAPTERS.md`).
+
+## Quickstart (dev)
+export PYTHONPATH=src:.
+
+# Uses in-memory storage by default (dev)
+uvicorn omp_ref_server.main:app --reload --host 0.0.0.0 --port 8080
+
+See docs/ADAPTERS.md for production adapter selection via OMP_STORAGE.
