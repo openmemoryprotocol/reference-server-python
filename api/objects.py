@@ -1,14 +1,11 @@
 # api/objects.py
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Any as AnyType
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from pydantic import BaseModel, Field
 
 # --- 7.1 hook (placeholder) ---
 def verify_signature_dependency():
-    """
-    TODO(7.1): Enforce RFC 9421 HTTP Message Signatures verification here.
-    """
     return True
 
 router = APIRouter(
@@ -44,43 +41,15 @@ class ObjectListOut(BaseModel):
     items: List[ObjectOut]
 
 class ObjectUpdateIn(BaseModel):
-    # Accept Any so we can return 400 (not 422) when it's not a dict
-    content: Any = Field(..., description="New full content to replace the current one")
+    content: AnyType = Field(..., description="New full content to replace the current one")
     metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
-# --- Storage port (interface) ---
-class StoragePort:
-    def store(self, namespace: str, key: Optional[str], content: Dict[str, Any], metadata: Dict[str, Any]) -> ObjectOut:
-        raise NotImplementedError
+# Import the Port and the provider
+from omp_ref_server.ports.storage import StoragePort
+from omp_ref_server.infra.providers import get_storage
 
-    def get(self, object_id: str) -> ObjectDataOut:
-        raise NotImplementedError
 
-    def delete(self, object_id: str) -> None:
-        raise NotImplementedError
-
-    def list(self, limit: int = 50, cursor: Optional[str] = None) -> ObjectListOut:
-        raise NotImplementedError
-
-    def search(
-        self,
-        namespace: Optional[str] = None,
-        key_contains: Optional[str] = None,
-        limit: int = 50,
-        cursor: Optional[str] = None,
-    ) -> ObjectListOut:
-        raise NotImplementedError
-
-    def update(self, object_id: str, content: Dict[str, Any], metadata: Dict[str, Any]) -> ObjectOut:
-        raise NotImplementedError
-
-# Inject your real storage adapter here (redis/postgres/vector/etc.)
-def get_storage() -> StoragePort:
-    # Placeholder: your infra adapter should implement StoragePort
-    from fractal_memory.engines import redis_engine  # example; replace with your selection
-    return redis_engine.adapter()  # must implement StoragePort
-
-# --- Routes (order matters: static before dynamic) ---
+# --- Routes (static before dynamic) ---
 
 @router.post("", response_model=ObjectOut, status_code=status.HTTP_201_CREATED)
 def create_object(body: ObjectIn, storage: StoragePort = Depends(get_storage)) -> ObjectOut:
@@ -130,7 +99,6 @@ def update_object(
     body: ObjectUpdateIn,
     storage: StoragePort = Depends(get_storage),
 ) -> ObjectOut:
-    # enforce 400 on bad content type instead of letting Pydantic emit 422
     if not isinstance(body.content, dict):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="content must be an object")
     try:
@@ -151,5 +119,3 @@ def delete_object(object_id: str, storage: StoragePort = Depends(get_storage)) -
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object not found")
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Delete failed")
-
-
