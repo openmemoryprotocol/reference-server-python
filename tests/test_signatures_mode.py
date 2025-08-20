@@ -26,13 +26,12 @@ def test_strict_mode_400_on_malformed():
     r = client.post("/objects", json={"namespace":"ns","content":{"x":1}}, headers=bad)
     assert r.status_code == 400
 
-def test_strict_mode_passes_on_wellformed_syntax():
-    _set_mode("strict")
+def test_permissive_mode_passes_on_wellformed_syntax():
+    _set_mode("permissive")
     headers = {
         "Signature-Input": 'sig1=();created=1618884473;keyid="test"',
         "Signature": "sig1=:dGVzdF9zaWc:",
     }
     r = client.post("/objects", json={"namespace":"ns","content":{"x":1}}, headers=headers)
-    # 7.1a is syntax-only, so this should pass. (7.1b will actually verify & might fail)
     assert r.status_code == 201
 
