@@ -1,18 +1,59 @@
 # api/objects.py
 from typing import Optional, Dict, Any, List, Any as AnyType
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from pydantic import BaseModel, Field
 
+from omp_ref_server.security.signatures import (
+    get_sig_mode, SigMode, parse_signature_input, parse_signature
+)
+
 # --- 7.1 hook (placeholder) ---
-def verify_signature_dependency():
+
+def verify_signature_dependency(request: Request):
+    """
+    7.1a — syntax-only gate.
+    Modes:
+      - off:        do nothing
+      - permissive: try-parse if headers exist; never block
+      - strict:     require Signature-Input and Signature; parse or 400; missing -> 401
+    """
+    mode = get_sig_mode()
+    if mode == SigMode.OFF:
+        return True
+
+    sig_input = request.headers.get("signature-input")
+    sig = request.headers.get("signature")
+
+    if mode == SigMode.STRICT:
+        if not sig_input or not sig:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing HTTP Message Signatures")
+        try:
+            parse_signature_input(sig_input)
+            parse_signature(sig)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Malformed signature: {e}")
+        return True
+
+    # PERMISSIVE
+    if sig_input and sig:
+        try:
+            parse_signature_input(sig_input)
+            parse_signature(sig)
+        except ValueError:
+            # log-only in 7.1a; don’t block
+            pass
     return True
 
 router = APIRouter(
     prefix="/objects",
     tags=["objects"],
-    # dependencies=[Depends(verify_signature_dependency)]
+    dependencies=[Depends(verify_signature_dependency)]
 )
+
+
+
+
 
 # --- Pydantic contracts ---
 class ObjectIn(BaseModel):
