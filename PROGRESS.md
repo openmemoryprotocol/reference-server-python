@@ -21,3 +21,4 @@
 - [x] 8.0b.8 Add minimal tests (error paths, bad payloads)
 - [x] 8.0b.9 Smoke test (uvicorn + curl)
 - [x] 8.0b.10 Update docs
+- [x] 7.1b.1 Ed25519 verification (pinned keys)
