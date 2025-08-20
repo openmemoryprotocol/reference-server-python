@@ -4,11 +4,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from pydantic import BaseModel, Field
 
-from omp_ref_server.security.signatures import (
-    get_sig_mode, SigMode, parse_signature_input, parse_signature
-)
 
-# --- 7.1 hook (placeholder) ---
+from omp_ref_server.security.signatures import signature_dependency
+
+# --- 7.1 ---
 
 def verify_signature_dependency(request: Request):
     """
@@ -48,7 +47,7 @@ def verify_signature_dependency(request: Request):
 router = APIRouter(
     prefix="/objects",
     tags=["objects"],
-    dependencies=[Depends(verify_signature_dependency)]
+    dependencies=[Depends(signature_dependency)]
 )
 
 
