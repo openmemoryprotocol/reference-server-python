@@ -24,3 +24,4 @@
 | 8.0b.9 | v0.8.0-b.9 | 2025-08-16 | Unified OMP error schema; handlers for HTTP and validation errors (422→400). |
 | 8.0b.9-docs | n/a | 2025-08-18 | Documented dev memory adapter +  production selection. |
 | 8.0b.9-docs | n/a | 2025-08-18 | Documented dev memory adapter +  production selection. |
+| 8.0b.10 | v0.8.0-b.10 | 2025-08-20 | Extracted StoragePort; added infra memory adapter & provider; API now depends on port. |

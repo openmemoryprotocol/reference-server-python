@@ -20,4 +20,4 @@
 - [x] 8.0b.7 Remove legacy routes
 - [x] 8.0b.8 Add minimal tests (error paths, bad payloads)
 - [x] 8.0b.9 Smoke test (uvicorn + curl)
-- [ ] 8.0b.10 Update docs
+- [x] 8.0b.10 Update docs
