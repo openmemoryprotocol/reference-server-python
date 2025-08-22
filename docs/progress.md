@@ -27,3 +27,4 @@
 | 8.0b.10 | v0.8.0-b.10 | 2025-08-20 | Extracted StoragePort; added infra memory adapter & provider; API now depends on port. |
 | 7.1a | v0.7.1-a | 2025-08-20 | Wired signature dependency (off/permissive/strict), syntax-only parser, tests. |
 | 7.1b.1 | v0.7.1-b1 | 2025-08-20 | Ed25519 verification wired (PyNaCl), pinned keys via env, strict/permissive enforcement. |
+| 7.1b | v0.7.1-b.final | 2025-08-20 | Signature verification finalized (Ed25519); 400 vs 401 semantics; tests green. |
