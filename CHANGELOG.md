@@ -106,7 +106,7 @@
 - Production deployments must set `OMP_STORAGE=<backend>` to a real adapter (e.g., postgres/redis/s3) once available.
 - The memory adapter stays in the repo for DX and CI; it is not meant for persistent data.
 
-## v0.7.1-d.fix — (2025-08-24)
+## v0.7.1-c.fix — (2025-08-24)
 - **Signatures**: resolve env-published keys via `OMP_SIG_KEYID` + `OMP_SIG_ED25519_PUB` (base64url).
 - **_publish_test_key**: now accepts `VerifyKey`/bytes/hex/base64 and mirrors to env to survive module splits.
 - **Verification**: add v0 exact-base fast path (`METHOD http://testserver{path}`) with tiny slash/port tolerance.
