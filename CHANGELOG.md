@@ -116,3 +116,9 @@
 ## v0.7.1-d.1 — (2025-08-24)
 - Gate broad `OMP_SIG_*` env scan behind `OMP_SIG_ENV_FALLBACK=1`. Default off for better prod hygiene.
 - Explicit sources still supported: `_key_registry`, `OMP_SIG_PUB_*` / `OMP_SIG_PUB_HEX_*`, and `OMP_SIG_KEYID` + `OMP_SIG_ED25519_PUB`.
+
+## v0.7.1-c.fix — (2025-08-24)
+- Signatures: env-published keys; publish hook accepts VerifyKey/bytes/hex/base64.
+- Add v0 exact-base fast path and tiny trailing-slash/default-port tolerance.
+- Optional broad env-scan gated behind `OMP_SIG_ENV_FALLBACK=1`.
+- All 25 tests green.
