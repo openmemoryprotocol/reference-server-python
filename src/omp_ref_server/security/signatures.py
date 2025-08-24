@@ -4,12 +4,14 @@ from __future__ import annotations
 import os
 import base64
 import binascii
-from typing import Dict, Optional, Set, Iterable, List, Any
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from fastapi import Request, HTTPException, status
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError, ValueError as NaClValueError, TypeError as NaClTypeError
 
+# Optional broad env fallback (off by default for prod hygiene)
+ENABLE_ENV_FALLBACK = os.getenv("OMP_SIG_ENV_FALLBACK", "0") == "1"
 
 if os.getenv("OMP_SIG_DEBUG") == "1":
     print("signatures.py loaded as", __name__)
@@ -208,6 +210,7 @@ def _try_env_pub(env_name: str) -> Optional[bytes]:
             continue
     return None
 
+
 def _gather_env_pubs_fallback() -> List[bytes]:
     """
     Fallback: scan env for any published test keys.
@@ -232,12 +235,13 @@ def _gather_env_pubs_fallback() -> List[bytes]:
 
     for k, v in os.environ.items():
         KU = k.upper()
-        if KU.startswith("OMP_SIG_PUB"):              # our usual patterns
+        if KU.startswith("OMP_SIG_PUB"):
             push_decoded(v)
-        elif KU in ("OMP_SIG_ED25519_PUB",):          # the fixture style you printed
+        elif KU in ("OMP_SIG_ED25519_PUB",):
             push_decoded(v)
 
     return pubs
+
 
 def _publish_test_key(keyid: str, pub: Any) -> None:
     """
@@ -293,16 +297,20 @@ def get_ed25519_pub_by_keyid(keyid: str) -> Optional[bytes]:
         if raw:
             return raw
 
-    # 2) direct pair: OMP_SIG_KEYID/OMP_SIG_ED25519_PUB (what your debug shows)
+    # 2) direct pair: OMP_SIG_KEYID/OMP_SIG_ED25519_PUB
     env_kid = os.getenv("OMP_SIG_KEYID")
     if env_kid and env_kid.strip().lower() == keyid.strip().lower():
         raw = _try_env_pub("OMP_SIG_ED25519_PUB")
         if raw:
             return raw
 
-    # 3) broad fallback: scan env for any plausible OMP_SIG pub variables
-    pubs = _gather_env_pubs_fallback()
-    return pubs[0] if pubs else None
+    # 3) optional broad env fallback
+    if ENABLE_ENV_FALLBACK:
+        pubs = _gather_env_pubs_fallback()
+        return pubs[0] if pubs else None
+
+    return None
+
 
 # -----------------------------------------------------------------------------
 # Header parsers (v0: only empty component list '()' supported)
@@ -467,7 +475,7 @@ def verify_request_signature_v0(request: Request) -> bool:
 
     bases = [b.encode("utf-8") for b in bases_str]
 
-    # collect pubs for this keyid; if missing, scan all OMP_SIG_PUB* envs
+    # collect pubs for this keyid
     pubs: List[bytes] = []
     seen_pub: Set[bytes] = set()
 
@@ -482,8 +490,8 @@ def verify_request_signature_v0(request: Request) -> bool:
     for v in _key_registry.values():
         push(v)
 
-    # broad env fallback if still empty
-    if not pubs:
+    # optional broad env fallback if still empty
+    if not pubs and ENABLE_ENV_FALLBACK:
         for b in _gather_env_pubs_fallback():
             push(b)
 
@@ -547,8 +555,7 @@ def _verify_one(request: Request, keyid: str, sig_b64u: str) -> bool:
     for v in _key_registry.values():
         push(v)
 
-    if not pubs:
-        # broad env fallback (same as v0)
+    if not pubs and ENABLE_ENV_FALLBACK:
         for b in _gather_env_pubs_fallback():
             push(b)
 
@@ -635,11 +642,11 @@ def verify_request_signature(request: Request, public_keys: Dict[str, Any], labe
     for v in _key_registry.values():
         push_any(v)
 
-    if not candidates:
-        # broad env fallback (same as v0)
+    if not candidates and ENABLE_ENV_FALLBACK:
         for b in _gather_env_pubs_fallback():
             if b not in candidates:
                 candidates.append(b)
+
     if not candidates:
         return False
 
