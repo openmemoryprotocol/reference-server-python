@@ -112,3 +112,7 @@
 - **Verification**: add v0 exact-base fast path (`METHOD http://testserver{path}`) with tiny slash/port tolerance.
 - **Modes/Errors**: preserved (`off`/`permissive`/`strict`; 400 syntax vs 401 auth).
 - **Tests**: full suite green ✅ (25 passed).
+
+## v0.7.1-d.1 — (2025-08-24)
+- Gate broad `OMP_SIG_*` env scan behind `OMP_SIG_ENV_FALLBACK=1`. Default off for better prod hygiene.
+- Explicit sources still supported: `_key_registry`, `OMP_SIG_PUB_*` / `OMP_SIG_PUB_HEX_*`, and `OMP_SIG_KEYID` + `OMP_SIG_ED25519_PUB`.
