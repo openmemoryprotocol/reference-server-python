@@ -1,7 +1,21 @@
 # src/omp_ref_server/security/keys.py
 from __future__ import annotations
 import os, json, base64
-from typing import Optional
+from typing import Dict, Optional
+
+
+_key_registry: Dict[str, bytes] = {}
+
+def publish_test_keys(keys: Dict[str, "nacl.signing.SigningKey"]):
+    """Only for tests — register public keys by keyid."""
+    from nacl.signing import SigningKey
+    for kid, sk in keys.items():
+        assert isinstance(sk, SigningKey)
+        _key_registry[kid] = bytes(sk.verify_key)
+
+def get_ed25519_pub_by_keyid(keyid: str) -> Optional[bytes]:
+    return _key_registry.get(keyid)
+
 
 def _b64url_decode(s: str) -> bytes:
     s = s.strip().replace(" ", "")

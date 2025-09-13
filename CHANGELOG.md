@@ -122,3 +122,13 @@
 - Add v0 exact-base fast path and tiny trailing-slash/default-port tolerance.
 - Optional broad env-scan gated behind `OMP_SIG_ENV_FALLBACK=1`.
 - All 25 tests green.
+
+## v0.7.1-b — (2025-08-20)	
+- Ed25519 verification wired (PyNaCl); env-pinned keys; strict/permissive enforcement.
+
+## v0.7.1-b.final — (2025-08-20)	
+- Signature verification finalized; correct 400 vs 401 semantics; dependency hardened; tests green.
+
+##v0.7.1-d.fix — (2025-08-24)
+- Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green.
+
