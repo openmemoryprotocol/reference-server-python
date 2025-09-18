@@ -74,33 +74,41 @@
 ## v0.8.0-b.5-test — (2025-08-16)
 - Added `tests/test_objects_delete.py`.
 - Verifies 204 on delete, subsequent 404 on get, and 404 when deleting a missing id.
+
 ## v0.8.0-b.6 — (2025-08-16)
 - Implemented `GET /objects` in `api/objects.py`.
 - Added `ObjectListOut { count, items[] }` and `StoragePort.list(limit, cursor)`.
 - Stable ordering by `(created_at, id)` in memory adapter (tests).
+
 ## v0.8.0-b.6-test — (2025-08-16)
 - Added `tests/test_objects_list.py` verifying list shape and `limit` behavior.
 - Extended shared FakeMemoryStorage with `list()` for deterministic ordering.
+
 ## v0.8.0-b.7 — (2025-08-16)
 - Added `GET /objects/search` with filters: `namespace`, `key_contains`, plus `limit`/`cursor` placeholders.
 - Extended `StoragePort` with `search(...)`.
 - Fixed route ordering so `/search` is matched before `/{object_id}` to avoid false 404s.
+
 ## v0.8.0-b.7-test — (2025-08-16)
 - Added `tests/test_objects_search.py` covering namespace filter, `key_contains`, and `limit`.
 - Extended shared FakeMemoryStorage with `search()` and verified route order no longer conflicts with `/{object_id}`.
+
 ## v0.8.0-b.8 — (2025-08-16)
 - Implemented `PUT /objects/{id}` to replace `content` and optionally `metadata`.
 - Added `ObjectUpdateIn`; kept `namespace` and `key` immutable.
 - Loosened request schema and added explicit validation so invalid `content` returns **400** (not 422).
 - Extended `StoragePort.update(...)`.
+
 ## v0.8.0-b.8-test — (2025-08-16)
 - Added `tests/test_objects_update.py` covering success path, missing-id 404, and 400 bad payload.
 - Ensured route-level validation returns **400** instead of Pydantic’s 422 for wrong content type.
+
 ## v0.8.0-b.9 — (2025-08-16)
 - Added unified OMP error shape: `{"error": {code, message, status, details?}}`.
 - Registered exception handlers to format all `HTTPException`s.
 - Normalized request validation errors (FastAPI 422) to **400 Bad Request** with structured details.
 - Added tests covering 404 (missing id), 400 (bad payload), and validation normalization.
+
 ### Dev runtime note — (2025-08-18)
 - Added a clearly documented **in-memory storage adapter** as the default *development* backend.
 - Production deployments must set `OMP_STORAGE=<backend>` to a real adapter (e.g., postgres/redis/s3) once available.
@@ -131,4 +139,9 @@
 
 ##v0.7.1-d.fix — (2025-08-24)
 - Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green.
+
+## v0.7.1-e.smoke — (2025-09-18)
+- Tools: added `scripts/smoke_signatures.sh` to exercise unsigned/malformed/bad-key/valid flows.
+- Docs: README section “Signature smoke tests” with server/client steps.
+- Confirms strict-mode behavior and our 400 vs 401 semantics.
 

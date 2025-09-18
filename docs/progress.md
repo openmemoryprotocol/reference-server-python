@@ -31,3 +31,5 @@
 | 7.1c.fix | v0.7.1-c.fix | 2025-08-24 | Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green. |
 | 7.1c.fix | v0.7.1-c.fix | 2025-08-24 | Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green. |
 | 7.1c.fix | v0.7.1-c.fix | 2025-08-24 | Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green. |
+| 7.1e.smoke | v0.7.1-e.smoke | 2025-09-18 | Add smoke_signatures.sh + README; verify unsigned/malformed/bad-key/valid. |
+
