@@ -31,3 +31,4 @@
 | 7.1d.fix | v0.7.1-d.fix | 2025-08-24 | Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green. |
 | 7.1.d.fix | v0.7.1-d.fix | 2025-08-24 | Env-published keys; v0 fast-path; CI smoke; 25 tests green. |
 
+| 7.1e.ci | v0.7.1-e.ci | 2025-09-21 | CI workflow (tests + signed POST smoke); add sign_post_objects.py helper. |
