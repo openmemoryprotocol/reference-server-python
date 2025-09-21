@@ -1,4 +1,5 @@
 # api/objects.py
+import os
 from typing import Optional, Dict, Any, List, Any as AnyType
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
@@ -49,10 +50,6 @@ router = APIRouter(
     tags=["objects"],
     dependencies=[Depends(signature_dependency)]
 )
-
-
-
-
 
 # --- Pydantic contracts ---
 class ObjectIn(BaseModel):
@@ -127,11 +124,31 @@ def search_objects(
 @router.get("/{object_id}", response_model=ObjectDataOut)
 def get_object(object_id: str, storage: StoragePort = Depends(get_storage)) -> ObjectDataOut:
     try:
-        return storage.get(object_id)
+        obj = storage.get(object_id)
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object not found")
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Get failed")
+
+    # --- erasable memory: delete-on-read ---
+    # env default (optional): OMP_DELETE_ON_READ_DEFAULT=1 to force delete after GET
+    delete_on_read = os.getenv("OMP_DELETE_ON_READ_DEFAULT", "0") == "1"
+
+    md = getattr(obj, "metadata", None)
+    if isinstance(md, dict):
+        dor = md.get("omp.delete_on_read")
+        if isinstance(dor, bool) and dor:
+            delete_on_read = True
+
+    if delete_on_read:
+        try:
+            storage.delete(object_id)  # best-effort; return the fetched object regardless
+        except Exception:
+            pass
+    # --- end erasable memory ---
+
+    return obj
+
 
 @router.put("/{object_id}", response_model=ObjectOut)
 def update_object(
