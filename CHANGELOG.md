@@ -113,3 +113,7 @@
 - **Modes/Errors**: preserved (`off`/`permissive`/`strict`; 400 syntax vs 401 auth).
 - **Tests**: full suite green ✅ (25 passed).
 - **CI**: added workflow that boots strict-mode server and sends a signed POST smoke test.
+## v0.7.1-e.ci — (2025-09-21)
+- CI: Added GitHub Actions workflow that runs unit tests and performs an end-to-end **signed POST** smoke in **strict** mode.
+- Tooling: Added `scripts/sign_post_objects.py` to (a) generate a dev keypair (`--gen-key`) and (b) send a signed POST (`--seed-b64u`, `--keyid`, `--namespace`, `--json`).
+- Result: CI now breaks if signature verification regresses; local dev has a one-liner demo for signing.
