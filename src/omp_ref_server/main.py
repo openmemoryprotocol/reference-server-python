@@ -16,6 +16,8 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from omp_ref_server.api.errors import http_exception_handler, request_validation_exception_handler
 
+from api.exchange import router as exchange_router
+
 # Load env vars
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -29,6 +31,7 @@ app = FastAPI(
 app.include_router(health_router)
 app.include_router(discovery_router)
 app.include_router(objects_router)
+app.include_router(exchange_router)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
 
