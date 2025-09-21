@@ -29,3 +29,5 @@
 | 7.1b.1 | v0.7.1-b1 | 2025-08-20 | Ed25519 verification wired (PyNaCl), pinned keys via env, strict/permissive enforcement. |
 | 7.1b | v0.7.1-b.final | 2025-08-20 | Signature verification finalized (Ed25519); 400 vs 401 semantics; tests green. |
 | 7.1d.fix | v0.7.1-d.fix | 2025-08-24 | Env-published keys; publish hook accepts VerifyKey/bytes/hex/b64; v0 fast-path + slash/port tolerance; 25 tests green. |
+| 7.1.d.fix | v0.7.1-d.fix | 2025-08-24 | Env-published keys; v0 fast-path; CI smoke; 25 tests green. |
+

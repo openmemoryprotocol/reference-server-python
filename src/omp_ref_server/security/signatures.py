@@ -116,18 +116,21 @@ def _candidate_bases(request: Request) -> Iterable[bytes]:
 
 _SIGNATURE_MODE = "off"  # in-memory default; env overrides if set
 
-
 def set_signature_mode(mode: str) -> None:
+    """
+    Set verification mode for this process AND mirror it to the environment
+    so any duplicate module import (e.g., via router vs. tests) sees it too.
+    """
     global _SIGNATURE_MODE
-    _SIGNATURE_MODE = (mode or "off").strip().lower()
-
+    m = (mode or "off").strip().lower()
+    os.environ["OMP_SIG_MODE"] = m
+    _SIGNATURE_MODE = m
 
 def get_signature_mode() -> str:
     m = os.getenv("OMP_SIG_MODE")
     if m:
         return m.strip().lower()
     return _SIGNATURE_MODE
-
 
 # -----------------------------------------------------------------------------
 # Errors
@@ -268,9 +271,13 @@ def _publish_test_key(keyid: str, pub: Any) -> None:
     os.environ[f"OMP_SIG_PUB_{keyid.upper()}"] = enc
     os.environ[f"OMP_SIG_PUB_{keyid.lower()}"] = enc
 
+    # ALSO mirror a direct pair so another module instance can resolve by keyid
+    os.environ["OMP_SIG_KEYID"] = keyid
+    os.environ["OMP_SIG_ED25519_PUB"] = enc
+
+
     if os.getenv("OMP_SIG_DEBUG") == "1":
         print(f"_publish_test_key: stored keyid={keyid}, len={len(b)}; registry_ids={list(_key_registry.keys())}")
-
 
 def get_ed25519_pub_by_keyid(keyid: str) -> Optional[bytes]:
     if not keyid:
@@ -293,16 +300,16 @@ def get_ed25519_pub_by_keyid(keyid: str) -> Optional[bytes]:
         if raw:
             return raw
 
-    # 2) direct pair: OMP_SIG_KEYID/OMP_SIG_ED25519_PUB (what your debug shows)
+    # 2) direct pair: OMP_SIG_KEYID/OMP_SIG_ED25519_PUB
     env_kid = os.getenv("OMP_SIG_KEYID")
     if env_kid and env_kid.strip().lower() == keyid.strip().lower():
         raw = _try_env_pub("OMP_SIG_ED25519_PUB")
         if raw:
             return raw
 
-    # 3) broad fallback: scan env for any plausible OMP_SIG pub variables
-    pubs = _gather_env_pubs_fallback()
-    return pubs[0] if pubs else None
+    # 3) no broad fallback (do NOT scan arbitrary env keys for strictness)
+    return None
+
 
 # -----------------------------------------------------------------------------
 # Header parsers (v0: only empty component list '()' supported)
@@ -373,78 +380,227 @@ def parse_signature(header: str) -> Dict[str, str]:
 # -----------------------------------------------------------------------------
 
 def verify_request_signature_v0(request: Request) -> bool:
+    """
+    Minimal v0 fast path used by tests:
+      - Parse headers (return False on any parse issue).
+      - Use ONLY the declared keyid’s public key (no scan of all keys).
+      - Verify against a tiny set of deterministic base variants:
+        EXACT:  f"{METHOD} {str(request.base_url).rstrip('/')}{request.url.path}"
+        PLUS:   str(request.url), raw_base_url + path (=> possible //),
+                Host header forms with default-port normalization,
+                and trailing-slash tolerance for each.
+    """
+    # 1) Headers
     sig_input = request.headers.get("signature-input") or request.headers.get("Signature-Input")
-    sig_hdr = request.headers.get("signature") or request.headers.get("Signature")
+    sig_hdr   = request.headers.get("signature")        or request.headers.get("Signature")
     if not sig_input or not sig_hdr:
         return False
 
     try:
-        si = parse_signature_input(sig_input)
+        si   = parse_signature_input(sig_input)
         sigs = parse_signature(sig_hdr)
     except Exception:
         return False
 
-    overlap = set(si.keys()) & set(sigs.keys())
-    if not overlap:
+    common = set(si.keys()) & set(sigs.keys())
+    if not common:
         return False
-    label = next(iter(overlap))
+    label = next(iter(common))
 
-    keyid = si[label].get("keyid")
+    keyid    = si[label].get("keyid")
     sig_b64u = sigs.get(label)
     if not keyid or not sig_b64u:
         return False
 
+    # 2) Decode signature
     try:
         sig_bytes = _b64url_decode(sig_b64u)
     except Exception:
         return False
 
-    # build prioritized bases
-    method = request.method.upper()
-    root_path = request.scope.get("root_path") or ""
-    path_only = request.url.path
-    full_path = f"{root_path}{path_only}"
+    # 3) ONLY the declared keyid’s public key
+    pub = get_ed25519_pub_by_keyid(keyid)
+    if not pub or not isinstance(pub, (bytes, bytearray)) or len(pub) != 32:
+        return False
+
+    # 4) Candidate bases (exact first)
+    method    = request.method.upper()
+    base_url  = str(request.base_url).rstrip("/")          # "http://testserver"
+    raw_base  = str(request.base_url)                      # ends with "/"
+    path      = request.url.path                           # "/objects"
+    exact     = f"{method} {base_url}{path}"
+    dblslash  = f"{method} {raw_base}{path}"               # "http://testserver//objects"
+    url_abs   = f"{method} {str(request.url)}"             # full absolute URL
 
     scheme = request.url.scheme or "http"
-    server_based: Optional[str] = None
-    server = request.scope.get("server")
-    if isinstance(server, tuple) and len(server) == 2 and server[0]:
-        host_s, port_s = server[0], server[1]
-        is_default = (scheme == "http" and (port_s in (80, None))) or (scheme == "https" and port_s == 443)
-        if is_default:
-            server_url = f"{scheme}://{host_s}"
-        else:
-            server_url = f"{scheme}://{host_s}:{port_s}"
-        server_based = f"{server_url}{full_path}"
+    host   = request.headers.get("host")                   # "testserver" or "testserver:80"
 
-    base_url = str(request.base_url).rstrip("/")
-    raw_base = str(request.base_url)
-    composed = f"{base_url}{full_path}"
-    double_slash = f"{raw_base}{full_path}"
-    url_abs = str(request.url)
+    bases_str: List[str] = [exact, url_abs, dblslash]
 
-    bases_str: List[str] = []
-    if server_based:
-        bases_str.append(f"{method} {server_based}")
-    bases_str.extend([
-        f"{method} {composed}",
-        f"{method} {url_abs}",
-        f"{method} {double_slash}",
-    ])
-
-    host = request.headers.get("host")
     if host:
-        host_url = f"{scheme}://{host}"
-        host_comp = f"{host_url}{full_path}"
-        bases_str.append(f"{method} {host_comp}")
+        host_url  = f"{scheme}://{host}"
+        bases_str.append(f"{method} {host_url}{path}")
+
+        # default-port normalization
         if (scheme == "http" and host.endswith(":80")) or (scheme == "https" and host.endswith(":443")):
             host_portless = host.rsplit(":", 1)[0]
-            bases_str.append(f"{method} {scheme}://{host_portless}{full_path}")
+            bases_str.append(f"{method} {scheme}://{host_portless}{path}")
+
+        # explicit default port if none present
         if ":" not in host:
             if scheme == "http":
-                bases_str.append(f"{method} http://{host}:80{full_path}")
+                bases_str.append(f"{method} http://{host}:80{path}")
             elif scheme == "https":
-                bases_str.append(f"{method} https://{host}:443{full_path}")
+                bases_str.append(f"{method} https://{host}:443{path}")
+
+    # trailing-slash tolerance
+    seen: Set[str] = set()
+    i = 0
+    while i < len(bases_str):
+        s = bases_str[i]
+        if s not in seen:
+            seen.add(s)
+            alt = s.rstrip("/") if s.endswith("/") else s + "/"
+            if alt not in seen:
+                bases_str.append(alt)
+                seen.add(alt)
+        i += 1
+
+    bases = [b.encode("utf-8") for b in bases_str]
+
+    # 5) Verify
+    try:
+        vk = VerifyKey(bytes(pub))
+    except Exception:
+        return False
+
+    for b in bases:
+        try:
+            vk.verify(b, sig_bytes)
+            return True
+        except (BadSignatureError, NaClValueError, NaClTypeError):
+            continue
+
+    return False
+
+# -----------------------------------------------------------------------------
+# General verification (exception style)
+# -----------------------------------------------------------------------------
+
+def _verify_one(request: Request, keyid: str, sig_b64u: str) -> bool:
+    # decode signature
+    try:
+        sig_bytes = _b64url_decode(sig_b64u)
+    except (binascii.Error, ValueError):
+        return False
+
+    # ONLY the declared keyid (no registry/env scan)
+    pub = get_ed25519_pub_by_keyid(keyid)
+    if not pub or not isinstance(pub, (bytes, bytearray)) or len(pub) != 32:
+        if os.getenv("OMP_SIG_DEBUG") == "1":
+            print(f"_verify_one: no pub for keyid={keyid!r}")
+        return False
+
+    try:
+        vk = VerifyKey(bytes(pub))
+    except Exception:
+        return False
+
+    bases = list(_candidate_bases(request))
+    if os.getenv("OMP_SIG_DEBUG") == "1":
+        try:
+            print("CANDIDATE BASES:", [b.decode("utf-8") for b in bases])
+        except Exception:
+            pass
+
+    for base in bases:
+        try:
+            vk.verify(base, sig_bytes)
+            return True
+        except (BadSignatureError, NaClValueError, NaClTypeError):
+            continue
+    return False
+
+# -----------------------------------------------------------------------------
+# Route-level boolean helper (optional)
+# -----------------------------------------------------------------------------
+
+def verify_request_signature_v0(request: Request) -> bool:
+    """
+    Minimal v0 fast path used by tests:
+      - Parse headers (return False on any parse issue).
+      - Use ONLY the declared keyid’s public key (no scan of all keys).
+      - Verify against a tiny set of deterministic base variants:
+        EXACT:  f"{METHOD} {str(request.base_url).rstrip('/')}{request.url.path}"
+        PLUS:   str(request.url), raw_base_url + path (=> possible //),
+                Host header forms with default-port normalization,
+                and trailing-slash tolerance for each.
+    """
+    # 1) Headers
+    sig_input = request.headers.get("signature-input") or request.headers.get("Signature-Input")
+    sig_hdr   = request.headers.get("signature")        or request.headers.get("Signature")
+    if not sig_input or not sig_hdr:
+        return False
+
+    try:
+        si   = parse_signature_input(sig_input)
+        sigs = parse_signature(sig_hdr)
+    except Exception:
+        return False
+
+    common = set(si.keys()) & set(sigs.keys())
+    if not common:
+        return False
+    label = next(iter(common))
+
+    keyid    = si[label].get("keyid")
+    sig_b64u = sigs.get(label)
+    if not keyid or not sig_b64u:
+        return False
+
+    # 2) Decode signature
+    try:
+        sig_bytes = _b64url_decode(sig_b64u)
+    except Exception:
+        return False
+
+    # 3) ONLY the declared keyid’s public key
+    pub = get_ed25519_pub_by_keyid(keyid)
+    if os.getenv("OMP_SIG_DEBUG") == "1":
+        print(f"V0 keyid={keyid!r}; pub_len={len(pub) if isinstance(pub,(bytes,bytearray)) else None}")
+
+    if not pub or not isinstance(pub, (bytes, bytearray)) or len(pub) != 32:
+        return False
+
+    # 4) Candidate bases (exact first)
+    method    = request.method.upper()
+    base_url  = str(request.base_url).rstrip("/")          # "http://testserver"
+    raw_base  = str(request.base_url)                      # ends with "/"
+    path      = request.url.path                           # "/objects"
+    exact     = f"{method} {base_url}{path}"
+    dblslash  = f"{method} {raw_base}{path}"               # "http://testserver//objects"
+    url_abs   = f"{method} {str(request.url)}"             # full absolute URL
+
+    scheme = request.url.scheme or "http"
+    host   = request.headers.get("host")                   # "testserver" or "testserver:80"
+
+    bases_str: List[str] = [exact, url_abs, dblslash]
+
+    if host:
+        host_url  = f"{scheme}://{host}"
+        bases_str.append(f"{method} {host_url}{path}")
+
+        # default-port normalization
+        if (scheme == "http" and host.endswith(":80")) or (scheme == "https" and host.endswith(":443")):
+            host_portless = host.rsplit(":", 1)[0]
+            bases_str.append(f"{method} {scheme}://{host_portless}{path}")
+
+        # explicit default port if none present
+        if ":" not in host:
+            if scheme == "http":
+                bases_str.append(f"{method} http://{host}:80{path}")
+            elif scheme == "https":
+                bases_str.append(f"{method} https://{host}:443{path}")
 
     # trailing-slash tolerance
     seen: Set[str] = set()
@@ -467,111 +623,35 @@ def verify_request_signature_v0(request: Request) -> bool:
 
     bases = [b.encode("utf-8") for b in bases_str]
 
-    # collect pubs for this keyid; if missing, scan all OMP_SIG_PUB* envs
-    pubs: List[bytes] = []
-    seen_pub: Set[bytes] = set()
-
-    def push(pub: Optional[bytes]) -> None:
-        if pub and isinstance(pub, (bytes, bytearray)) and len(pub) == 32:
-            b = bytes(pub)
-            if b not in seen_pub:
-                pubs.append(b)
-                seen_pub.add(b)
-
-    push(get_ed25519_pub_by_keyid(keyid))
-    for v in _key_registry.values():
-        push(v)
-
-    # broad env fallback if still empty
-    if not pubs:
-        for b in _gather_env_pubs_fallback():
-            push(b)
-
-    if os.getenv("OMP_SIG_DEBUG") == "1":
-        try:
-            print("V0 KEYID:", keyid, "V0 PUB COUNT:", len(pubs), "REGISTRY:", list(_key_registry.keys()))
-        except Exception:
-            pass
-
-    if not pubs and os.getenv("OMP_SIG_DEBUG") == "1":
-        env_keys = [k for k in os.environ.keys() if k.upper().startswith("OMP_SIG")]
-        print("ENV OMP_SIG* KEYS:", env_keys)
-        for k in env_keys:
-            v = os.environ.get(k, "")
-            print(f"ENV {k} len={len(v)} value_sample={v[:16]}...")
-
-    if not pubs:
-        return False
-
-    for pub in pubs:
-        try:
-            vk = VerifyKey(pub)
-        except Exception:
-            continue
-        for base in bases:
-            try:
-                vk.verify(base, sig_bytes)
-                if os.getenv("OMP_SIG_DEBUG") == "1":
-                    try:
-                        print("V0 MATCHED:", base.decode("utf-8"))
-                    except Exception:
-                        pass
-                return True
-            except (BadSignatureError, NaClValueError, NaClTypeError):
-                continue
-
-    return False
-
-
-# -----------------------------------------------------------------------------
-# General verification (exception style)
-# -----------------------------------------------------------------------------
-
-def _verify_one(request: Request, keyid: str, sig_b64u: str) -> bool:
+    # 5) Verify
     try:
-        sig_bytes = _b64url_decode(sig_b64u)
-    except (binascii.Error, ValueError):
+        vk = VerifyKey(bytes(pub))
+    except Exception:
         return False
 
-    pubs: List[bytes] = []
-    seen: Set[bytes] = set()
-
-    def push(pub: Optional[bytes]) -> None:
-        if pub and isinstance(pub, (bytes, bytearray)) and len(pub) == 32:
-            b = bytes(pub)
-            if b not in seen:
-                pubs.append(b)
-                seen.add(b)
-
-    push(get_ed25519_pub_by_keyid(keyid))
-    for v in _key_registry.values():
-        push(v)
-
-    if not pubs:
-        # broad env fallback (same as v0)
-        for b in _gather_env_pubs_fallback():
-            push(b)
-
-    if not pubs:
-        return False
-
-    for pub in pubs:
+    for b in bases:
         try:
-            vk = VerifyKey(pub)
-        except Exception:
+            vk.verify(b, sig_bytes)
+            if os.getenv("OMP_SIG_DEBUG") == "1":
+                try:
+                    print("V0 MATCHED:", b.decode("utf-8"))
+                except Exception:
+                    pass
+            return True
+        except (BadSignatureError, NaClValueError, NaClTypeError):
             continue
-        for base in _candidate_bases(request):
-            try:
-                vk.verify(base, sig_bytes)
-                return True
-            except (BadSignatureError, NaClValueError, NaClTypeError):
-                continue
+
     return False
 
+
+
+#-----------------------------------------------------------------------------
+# Request_Signatures Added
+#-----------------------------------------------------------------------------
 
 def verify_request_signatures(request: Request, sig_input_hdr: str, sig_hdr: str) -> None:
-    si = parse_signature_input(sig_input_hdr)
-    sigs = parse_signature(sig_hdr)
+    si = parse_signature_input(sig_input_hdr)  # -> 400 via MalformedSignature
+    sigs = parse_signature(sig_hdr)            # -> 400 via MalformedSignature
 
     common: Set[str] = set(si.keys()) & set(sigs.keys())
     if not common:
@@ -581,93 +661,14 @@ def verify_request_signatures(request: Request, sig_input_hdr: str, sig_hdr: str
         if not si[label].get("keyid"):
             raise MalformedSignature(f"missing keyid for label {label}")
 
+    # accept if ANY label verifies — but each uses ONLY its declared keyid
     for label in common:
         keyid = si[label]["keyid"]
         if _verify_one(request, keyid, sigs[label]):
             return
 
+    # unknown key(s) or bad sig(s)
     raise PermissionError("no valid signature")
-
-
-# -----------------------------------------------------------------------------
-# Route-level boolean helper (optional)
-# -----------------------------------------------------------------------------
-
-def verify_request_signature(request: Request, public_keys: Dict[str, Any], label: str = "sig1") -> bool:
-    sig_input = request.headers.get("signature-input")
-    sig_hdr = request.headers.get("signature")
-    if not sig_input or not sig_hdr:
-        return False
-
-    try:
-        si = parse_signature_input(sig_input)
-        sigs = parse_signature(sig_hdr)
-    except Exception:
-        return False
-
-    labels = set(si.keys()) & set(sigs.keys())
-    if not labels:
-        return False
-
-    candidates: List[bytes] = []
-    seen: Set[bytes] = set()
-
-    def push_any(v: Any) -> None:
-        try:
-            b = _as_verify_key_bytes(v)
-            if len(b) == 32 and b not in seen:
-                candidates.append(b)
-                seen.add(b)
-        except Exception:
-            pass
-
-    for lab in labels:
-        kid = si[lab].get("keyid")
-        if kid:
-            if public_keys and kid in public_keys:
-                push_any(public_keys[kid])
-            push_any(get_ed25519_pub_by_keyid(kid))
-
-    if public_keys:
-        for v in public_keys.values():
-            push_any(v)
-
-    for v in _key_registry.values():
-        push_any(v)
-
-    if not candidates:
-        # broad env fallback (same as v0)
-        for b in _gather_env_pubs_fallback():
-            if b not in candidates:
-                candidates.append(b)
-    if not candidates:
-        return False
-
-    sig_bytes_list: List[bytes] = []
-    for lab in labels:
-        try:
-            sig_bytes_list.append(_b64url_decode(sigs[lab]))
-        except Exception:
-            pass
-    if not sig_bytes_list:
-        return False
-
-    bases = list(_candidate_bases(request))
-    for pub in candidates:
-        try:
-            vk = VerifyKey(pub)
-        except Exception:
-            continue
-        for sb in sig_bytes_list:
-            for base in bases:
-                try:
-                    vk.verify(base, sb)
-                    return True
-                except (BadSignatureError, NaClValueError, NaClTypeError):
-                    continue
-
-    return False
-
 
 # -----------------------------------------------------------------------------
 # FastAPI dependency (mode-aware)
@@ -685,7 +686,7 @@ def signature_dependency(request: Request) -> None:
         return
 
     sig_input = request.headers.get("signature-input")
-    sig_hdr = request.headers.get("signature")
+    sig_hdr   = request.headers.get("signature")
 
     if mode == "permissive":
         if not sig_input and not sig_hdr:
@@ -695,6 +696,7 @@ def signature_dependency(request: Request) -> None:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Signature headers required together",
             )
+        # syntax-only
         try:
             parse_signature_input(sig_input)
             parse_signature(sig_hdr)
@@ -707,15 +709,26 @@ def signature_dependency(request: Request) -> None:
     if mode == "strict":
         if not sig_input or not sig_hdr:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing required signature")
+
+        # IMPORTANT: pre-parse for clean 400 vs 401 before any verification
+        try:
+            parse_signature_input(sig_input)
+            parse_signature(sig_hdr)
+        except MalformedSignature as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        except Exception:
+            # any other syntax error
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Malformed signature")
+
+        # Now headers are syntactically valid. Verify crypto.
         try:
             # v0 exact-base fast path
             if verify_request_signature_v0(request):
                 return
-            # fallback: general verifier (multi-sig, variants)
+            # general verifier (multi-sig, variants) – raises PermissionError if none verify
             verify_request_signatures(request, sig_input, sig_hdr)
-        except MalformedSignature as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         except PermissionError as e:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
         except Exception:
+            # any other failure during verification is an auth failure here
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid signature")

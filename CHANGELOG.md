@@ -112,3 +112,4 @@
 - **Verification**: add v0 exact-base fast path (`METHOD http://testserver{path}`) with tiny slash/port tolerance.
 - **Modes/Errors**: preserved (`off`/`permissive`/`strict`; 400 syntax vs 401 auth).
 - **Tests**: full suite green ✅ (25 passed).
+- **CI**: added workflow that boots strict-mode server and sends a signed POST smoke test.
